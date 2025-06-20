@@ -6,83 +6,123 @@ import utils
 import feature_support
 
 class ConfigureVoiceTab(wx.Panel):
-	def __init__(self, notebook, parent):
+	def __init__(self, notebook, parent, colors=None, fonts=None): # Added colors and fonts
 		super().__init__(notebook)
 		self.parent = parent
+		self.colors = colors if colors else {
+			"background": wx.Colour(240, 240, 240), "text": wx.Colour(50, 50, 50),
+			"accent": wx.Colour(0, 120, 215), "input_bg": wx.Colour(255,255,255)
+		}
+		self.fonts = fonts if fonts else {
+			"label": wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL),
+			"input": wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+		}
+		self.SetBackgroundColour(self.colors["background"])
 
 		# Create a grid sizer with extra padding
-		grid_sizer = wx.FlexGridSizer(cols=2, hgap=5, vgap=10)
+		grid_sizer = wx.FlexGridSizer(cols=2, hgap=10, vgap=10) # Increased hgap for better spacing
+		grid_sizer.AddGrowableCol(1, 1) # Allow second column to expand
+
+		# Helper function to apply styles
+		def style_widget(widget, is_input=False):
+			if isinstance(widget, (wx.StaticText, wx.CheckBox)):
+				widget.SetFont(self.fonts["label"])
+				widget.SetForegroundColour(self.colors["text"])
+			elif isinstance(widget, (wx.TextCtrl, wx.Choice, wx.FilePickerCtrl)):
+				widget.SetFont(self.fonts["input"])
+				if not isinstance(widget, wx.FilePickerCtrl): # FilePickerCtrl styling is more native
+					widget.SetBackgroundColour(self.colors.get("input_bg", wx.WHITE))
+			elif isinstance(widget, wx.Button):
+				widget.SetFont(self.fonts["input"])
 
 		# Add controls with labels
 		lbl_voice_name = wx.StaticText(self, label="Name")
 		self.txt_voice_name = wx.TextCtrl(self, value=app_state.current_speaker.name)
-		self.add_control_with_label(grid_sizer, lbl_voice_name, self.txt_voice_name)
+		self.add_control_with_label(grid_sizer, lbl_voice_name, self.txt_voice_name, style_widget)
 
 		lbl_tts_engines = wx.StaticText(self, label="TTS Engine")
 		self.available_engines = [engine for engine in Voice.VoiceType if engine.value[1]]
-
 		self.cb_tts_engines = wx.Choice(self, choices=[engine.value[0] for engine in self.available_engines])
 		self.cb_tts_engines.Bind(wx.EVT_CHOICE, self.change_tts_engine)
-		self.add_control_with_label(grid_sizer, lbl_tts_engines, self.cb_tts_engines)
+		self.add_control_with_label(grid_sizer, lbl_tts_engines, self.cb_tts_engines, style_widget)
 
-		# This is for filtering coqui models by language
 		self.lbl_coqui_lang = wx.StaticText(self, label="Language")
 		self.cb_coqui_lang = wx.Choice(self, choices=[])
 		self.cb_coqui_lang.Bind(wx.EVT_CHOICE, self.change_model_language)
+		self.add_control_with_label(grid_sizer, self.lbl_coqui_lang, self.cb_coqui_lang, style_widget)
 		self.lbl_coqui_lang.Hide()
-		self.cb_coqui_lang.Hide()  # Hide by default, show only when multi-speaker Coqui model is selected
-		self.add_control_with_label(grid_sizer, self.lbl_coqui_lang, self.cb_coqui_lang)
+		self.cb_coqui_lang.Hide()
 
 		lbl_model_options = wx.StaticText(self, label="Model Options")
 		self.cb_model_options = wx.Choice(self, choices=app_state.current_speaker.list_voice_options())
 		self.cb_model_options.Bind(wx.EVT_CHOICE, self.change_voice_params)
-		self.add_control_with_label(grid_sizer, lbl_model_options, self.cb_model_options)
+		self.add_control_with_label(grid_sizer, lbl_model_options, self.cb_model_options, style_widget)
 		
-		self.btn_patch_onecore = wx.Button(self, label="Unlock OneCore Voices (Requires Admin)")
+		self.btn_patch_onecore = wx.Button(self, label="Unlock OneCore Voices (Admin)")
+		style_widget(self.btn_patch_onecore)
 		self.btn_patch_onecore.Bind(wx.EVT_BUTTON, self.patch_onecore)
 		self.btn_patch_onecore.Hide()
-		grid_sizer.Add((0,0), 1, wx.ALL | wx.ALIGN_LEFT, 5)
-		grid_sizer.Add(self.btn_patch_onecore, 1, wx.ALL | wx.ALIGN_RIGHT, 5)
+		grid_sizer.AddStretchSpacer() # Placeholder for label column
+		grid_sizer.Add(self.btn_patch_onecore, 0, wx.ALL | wx.ALIGN_LEFT, 5) # Align left
 
-		# This is for multispeaker coqui models. Should be hidden by default & shown when model is multispeaker
 		self.lbl_speaker_voices = wx.StaticText(self, label="Speaker Voices")
 		self.cb_speaker_voices = wx.Choice(self, choices=[])
 		self.cb_speaker_voices.Bind(wx.EVT_CHOICE, self.change_voice_params)
+		self.add_control_with_label(grid_sizer, self.lbl_speaker_voices, self.cb_speaker_voices, style_widget)
 		self.lbl_speaker_voices.Hide()
-		self.cb_speaker_voices.Hide()  # Hide by default, show only when multi-speaker Coqui model is selected
-		self.add_control_with_label(grid_sizer, self.lbl_speaker_voices, self.cb_speaker_voices)
+		self.cb_speaker_voices.Hide()
 
-		# If you're using XTTS or voice conversion, provide a wav file to sample
 		self.chk_speaker_wav = wx.CheckBox(self, label="VC / Clone Sample")
-		self.chk_speaker_wav.Bind(wx.EVT_CHECKBOX, self.change_voice_params) # Set the voice to use VC
+		style_widget(self.chk_speaker_wav)
+		self.chk_speaker_wav.Bind(wx.EVT_CHECKBOX, self.change_voice_params)
 		self.file_speaker_wav = wx.FilePickerCtrl(self, message="Select a voice sample to clone", wildcard="*.wav")
+		style_widget(self.file_speaker_wav, is_input=True)
 		self.file_speaker_wav.Bind(wx.EVT_FILEPICKER_CHANGED, self.change_voice_params)
-		self.add_control_with_label(grid_sizer, self.chk_speaker_wav, self.file_speaker_wav)
-
+		self.add_control_with_label(grid_sizer, self.chk_speaker_wav, self.file_speaker_wav, style_widget, control_is_checkbox=True)
 
 		lbl_sample_text = wx.StaticText(self, label="Sample Text")
 		self.txt_sample_text = wx.TextCtrl(self, value="I do be slurpin' that cheese without my momma's permission")
-		self.add_control_with_label(grid_sizer, lbl_sample_text, self.txt_sample_text)
+		self.add_control_with_label(grid_sizer, lbl_sample_text, self.txt_sample_text, style_widget)
 
+		# Buttons sizer for bottom buttons
+		buttons_sizer = wx.BoxSizer(wx.HORIZONTAL)
 		self.btn_sample = wx.Button(self, label="▶️ Sample Voice")
+		style_widget(self.btn_sample)
 		self.btn_sample.Bind(wx.EVT_BUTTON, self.sample)
+		buttons_sizer.Add(self.btn_sample, 0, wx.RIGHT, 10) # Add some space between buttons
 		
 		self.btn_update_voice = wx.Button(self, label="Update Voice")
+		style_widget(self.btn_update_voice)
+		self.btn_update_voice.SetBackgroundColour(self.colors["accent"])
+		self.btn_update_voice.SetForegroundColour(wx.WHITE)
 		self.btn_update_voice.Bind(wx.EVT_BUTTON, self.update_voice)
+		buttons_sizer.Add(self.btn_update_voice)
 
-		# Add the buttons to the grid without labels
-		grid_sizer.AddStretchSpacer()
-		grid_sizer.Add(self.btn_sample, 0, wx.ALL | wx.ALIGN_RIGHT, 5)
-		grid_sizer.Add(self.btn_update_voice, 0, wx.ALL | wx.ALIGN_LEFT, 5)
+		grid_sizer.AddStretchSpacer() # Placeholder for label column
+		grid_sizer.Add(buttons_sizer, 0, wx.ALIGN_RIGHT | wx.TOP, 10) # Align buttons to the right
 
 		# Set the grid sizer as the main sizer for the panel with extra padding
 		main_sizer = wx.BoxSizer(wx.VERTICAL)
-		main_sizer.Add(grid_sizer, 0, wx.ALL | wx.EXPAND, 15)
+		main_sizer.Add(grid_sizer, 1, wx.ALL | wx.EXPAND, 20) # Increased padding, make grid sizer expand
 		self.SetSizerAndFit(main_sizer)
 
-	def add_control_with_label(self, sizer, label, control):
-		sizer.Add(label, 0, wx.ALL|wx.ALIGN_LEFT, 5)
-		sizer.Add(control, 0, wx.ALL|wx.EXPAND, 5)
+		# Apply styles to initially hidden elements too
+		style_widget(self.lbl_coqui_lang)
+		style_widget(self.cb_coqui_lang, is_input=True)
+		style_widget(self.lbl_speaker_voices)
+		style_widget(self.cb_speaker_voices, is_input=True)
+
+	def add_control_with_label(self, sizer, label, control, style_func, control_is_checkbox=False):
+		style_func(label)
+		style_func(control, is_input=True)
+
+		# For checkboxes, the label is part of the control. Add a spacer for the label column.
+		if control_is_checkbox:
+			sizer.Add(control, 0, wx.ALL | wx.ALIGN_LEFT | wx.EXPAND, 5) # Checkbox itself contains label
+			sizer.Add(wx.StaticText(self, label=""), 0) # Placeholder for the control part if needed or adjust span
+		else:
+			sizer.Add(label, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 5)
+			sizer.Add(control, 1, wx.ALL | wx.EXPAND, 5) # Control takes proportion 1 to expand
 
 	def sample(self, event):
 		utils.sampleVoice(self.txt_sample_text.Value)

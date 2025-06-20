@@ -5,69 +5,92 @@ import sys
 import os
 
 class GreeterView(wx.Panel):
-	def __init__(self, parent, context):
+	def __init__(self, parent, context, colors=None, fonts=None): # Added colors and fonts
 		super().__init__(parent)
 
+		self.colors = colors if colors else { # Default fallbacks if not provided
+			"background": wx.Colour(240, 240, 240),
+			"text": wx.Colour(50, 50, 50),
+			"accent": wx.Colour(0, 120, 215),
+			"success": wx.Colour(0, 150, 0),
+			"error": wx.Colour(200, 0, 0)
+		}
+		self.fonts = fonts if fonts else { # Default fallbacks if not provided
+			"title": wx.Font(18, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD),
+			"label": wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL),
+			"header": wx.Font(14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD),
+		}
+
+		self.SetBackgroundColour(self.colors["background"])
+
 		self.scroll_panel = wx.ScrolledWindow(self, style=wx.VSCROLL)
-		vbox = wx.BoxSizer(wx.VERTICAL)
-		self.scroll_panel.SetSizer(vbox)
-		self.scroll_panel.SetScrollRate(0, 20)
-  
+		self.scroll_panel.SetBackgroundColour(self.colors["background"]) # Apply to scrolled panel too
+
+		vbox = wx.BoxSizer(wx.VERTICAL) # This will be the sizer for scroll_panel's content
+
+		# Title
 		txt_title = wx.StaticText(self.scroll_panel, label="Welcome to WeeaBlind")
-		title_font = wx.Font(18, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
-		txt_title.SetFont(title_font)
-		vbox.Add(txt_title, 0, wx.ALIGN_LEFT | wx.TOP | wx.LEFT, 20)
+		txt_title.SetFont(self.fonts["title"])
+		txt_title.SetForegroundColour(self.colors["accent"])
+		vbox.Add(txt_title, 0, wx.ALL, 20) # Added more padding
+
+		# Logo and Intro Text - side by side
+		intro_sizer = wx.BoxSizer(wx.HORIZONTAL)
 
 		img = wx.Image("logo.png" if not is_deployed else os.path.join("_internal", "logo.png"), wx.BITMAP_TYPE_ANY)
-		img.Rescale(200, 200)
+		img.Rescale(150, 150) # Slightly smaller logo
 		bmp = wx.StaticBitmap(self.scroll_panel, wx.ID_ANY, wx.Bitmap(img))
-		vbox.Add(bmp, 0, wx.ALIGN_LEFT | wx.BOTTOM | wx.LEFT, 20)
+		intro_sizer.Add(bmp, 0, wx.RIGHT | wx.ALIGN_TOP, 20) # Align top and add right margin
 
-		intro_text = "Welcome to WeeaBlind, your companion for dubbing multi-lingual media using modern AI technologies. This tool bridges the gap for individuals with visual impairments, dyslexia, or anyone who prefers listening over reading subtitles. Dive into your favorite shows and videos and experiement with innovative speech synthesis, diarization, language identification, and voice cloning technologies. The program is still very much under construction, but is also quite useful in its current state!"
-		txt_introduction = wx.StaticText(self.scroll_panel, label=intro_text)
-		txt_introduction.Wrap(400)  # Wrap text to a maximum width of 400 pixels
-		vbox.Add(txt_introduction, 0, wx.ALIGN_LEFT | wx.TOP | wx.LEFT, 20)
+		intro_text_content = "Welcome to WeeaBlind, your companion for dubbing multi-lingual media using modern AI technologies. This tool bridges the gap for individuals with visual impairments, dyslexia, or anyone who prefers listening over reading subtitles. Dive into your favorite shows and videos and experiement with innovative speech synthesis, diarization, language identification, and voice cloning technologies. The program is still very much under construction, but is also quite useful in its current state!"
+		txt_introduction = wx.StaticText(self.scroll_panel, label=intro_text_content)
+		txt_introduction.SetFont(self.fonts["label"])
+		txt_introduction.SetForegroundColour(self.colors["text"])
+		txt_introduction.Wrap(350)
+		intro_sizer.Add(txt_introduction, 1, wx.EXPAND) # Allow text to expand
+		vbox.Add(intro_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 20)
 		
+		# Mode Info
 		mode_state = "RELEASE" if is_deployed else "DEVELOPMENT"
 		mode_prompt = "You can install features from the requirements.txt with pip and they will become unlocked" if not is_deployed else "If you'd like access to the full suite of AI-powered features the program can perform, you'll need to install python and set up WeeaBlind in a virtual enviornment as described in the README. These are not easily distributable in a binary release format."
 		txt_mode = wx.StaticText(self.scroll_panel, label=f"You are running in {mode_state} mode.\n{mode_prompt}")
-		vbox.Add(txt_mode, 0, wx.ALIGN_LEFT | wx.TOP | wx.LEFT, 20)
+		txt_mode.SetFont(self.fonts["label"])
+		txt_mode.SetForegroundColour(self.colors["text"])
+		txt_mode.Wrap(500)
+		vbox.Add(txt_mode, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 20)
 
+		# Usage Guide
 		txt_usage_header = wx.StaticText(self.scroll_panel, label="How to Use Weeablind:")
-		usage_section_font = wx.Font(14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
-		txt_usage_header.SetFont(usage_section_font)
-		vbox.Add(txt_usage_header, 0, wx.ALIGN_LEFT | wx.TOP | wx.LEFT, 20)
-
-		
+		txt_usage_header.SetFont(self.fonts.get("header", self.fonts["label"])) # Use header or fallback to label
+		txt_usage_header.SetForegroundColour(self.colors["text"])
+		vbox.Add(txt_usage_header, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 10) # Consistent padding
 
 		usage_guide = """
-Start by importing a video file or pasting a YouTube link and pressing enter
-If you want subtitles autogenerated by YouTube, specify the language you want, or specify "all" for all subtitle options.
-Make sure the correct audio and subtitle track are selected in the List Streams Tab
-Next, configure the TTS voice you'd like to dub the video with. You can install more TTS voices in Windows settings and enable them with the "Unlock OneCore" button
-Once everything is configured, you can preview how it will sound in the Subtitles Tab
-If the video or subtitles are too quiet, you can change and preview the audio mixing in List Streams
-If the subtitles for your video were autogenerated by YouTube, the timings may not line up perfectly, so unchecking Match Rate can fix timestreatch issues
-Finally, click "Run Dubbing" to create your video
-All files generated by the program appear in the "output" folder
+Start by importing a video file or pasting a YouTube link and pressing enter.
+If you want subtitles autogenerated by YouTube, specify the language (e.g., "en", "ja") or "all".
+Ensure correct audio/subtitle tracks are chosen in the "Video Streams" tab.
+Configure your desired TTS voice in the "Configure Voices" tab.
+Preview audio mixing in "Video Streams" if levels are off.
+For auto-generated YouTube subs, consider unchecking "Match Speaker Rate" if timings are off.
+Click "Run Dubbing!" to generate your video (in the "output" folder).
 
---For Advanced Use--
-
-If the video contains multiple spoken languages, use the language identification and filter features
-If you want to remove spoken vocals in the video's source language, use the "remove vocals" button in List Streams
-In the Subtitles Tab, you can select spoken lines for cloning and export them to a wav file
-If you have Coqui TTS installed, you can use these clones with XTTS or a Voice Conversion model
-For videos with only burned in subs, you can attempt Video OCR in the List Streams tab.
+--Advanced Use--
+- Language filtering: For multi-lingual content.
+- Vocal removal: In "Video Streams" to remove original language vocals.
+- Voice cloning: Select lines in "Subtitles" tab, export WAV for Coqui XTTS/VC.
+- Video OCR: For videos with burned-in subtitles (in "Video Streams").
 """
 		txt_usage = wx.StaticText(self.scroll_panel, label=usage_guide)
-		txt_usage.Wrap(400)
-		vbox.Add(txt_usage, 0, wx.ALIGN_LEFT | wx.TOP | wx.LEFT, 20)
+		txt_usage.SetFont(self.fonts["label"])
+		txt_usage.SetForegroundColour(self.colors["text"])
+		txt_usage.Wrap(500)
+		vbox.Add(txt_usage, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 20)
 
-
+		# Features List
 		txt_features_header = wx.StaticText(self.scroll_panel, label="Currently Supported Features:")
-		feature_section_font = wx.Font(14, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
-		txt_features_header.SetFont(feature_section_font)
-		vbox.Add(txt_features_header, 0, wx.ALIGN_LEFT | wx.TOP | wx.LEFT, 20)
+		txt_features_header.SetFont(self.fonts.get("header", self.fonts["label"]))
+		txt_features_header.SetForegroundColour(self.colors["text"])
+		vbox.Add(txt_features_header, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
 
 		features = {
 			"FFmpeg": feature_support.ffmpeg_supported,
@@ -82,12 +105,26 @@ For videos with only burned in subs, you can attempt Video OCR in the List Strea
 			"GPU Support": feature_support.gpu_supported,
 		}
 
-		for feature in features:
-			txt_feature = wx.StaticText(self.scroll_panel, label=f"""{feature}: {"Not" if not features[feature] else ""} Supported""")
-			txt_feature.SetForegroundColour((0, 255, 0) if features[feature] else (255, 0, 0))
-			vbox.Add(txt_feature, 0, wx.ALIGN_LEFT | wx.TOP | wx.LEFT, 20)
+		features_grid_sizer = wx.GridSizer(cols=2, vgap=5, hgap=10) # Use a grid for features
+		for feature_name, is_supported in features.items():
+			txt_feature_label = wx.StaticText(self.scroll_panel, label=f"{feature_name}:")
+			txt_feature_label.SetFont(self.fonts["label"])
+			txt_feature_label.SetForegroundColour(self.colors["text"])
 
-		main_sizer = wx.BoxSizer(wx.VERTICAL)
-		main_sizer.Add(self.scroll_panel, 1, wx.CENTER | wx.EXPAND | wx.ALL, border=10)
-		self.SetSizerAndFit(main_sizer)
+			txt_feature_status = wx.StaticText(self.scroll_panel, label="Supported" if is_supported else "Not Supported")
+			txt_feature_status.SetFont(self.fonts["label"])
+			txt_feature_status.SetForegroundColour(self.colors["success"] if is_supported else self.colors["error"])
+
+			features_grid_sizer.Add(txt_feature_label, 0, wx.ALIGN_LEFT)
+			features_grid_sizer.Add(txt_feature_status, 0, wx.ALIGN_LEFT)
+		vbox.Add(features_grid_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 20)
+
+		self.scroll_panel.SetSizer(vbox) # Set sizer for the scrollable area's content
+		self.scroll_panel.Layout()
+		self.scroll_panel.FitInside() # Important for scrollbars to appear correctly
+
+		# Main sizer for the GreeterView panel itself
+		main_panel_sizer = wx.BoxSizer(wx.VERTICAL)
+		main_panel_sizer.Add(self.scroll_panel, 1, wx.EXPAND | wx.ALL, 10) # Add scroll_panel to the main_panel_sizer
+		self.SetSizerAndFit(main_panel_sizer)
 

@@ -17,72 +17,153 @@ class GUI(wx.Panel):
 	def __init__(self, parent):
 		super().__init__(parent)
 
-		
-		lbl_title = wx.StaticText(self, label="WeeaBlind")
-		lbl_GPU = wx.StaticText(self, label=f"GPU Detected? {feature_support.gpu_supported}")
-		lbl_GPU.SetForegroundColour((0, 255, 0) if feature_support.gpu_supported else (255, 0, 0))
+		# Define a color palette
+		self.colors = {
+			"background": wx.Colour(240, 240, 240), # Light grey
+			"text": wx.Colour(50, 50, 50),        # Dark grey
+			"accent": wx.Colour(0, 120, 215),     # Blue
+			"success": wx.Colour(0, 150, 0),       # Green
+			"error": wx.Colour(200, 0, 0)         # Red
+		}
+		self.SetBackgroundColour(self.colors["background"])
 
+		# Define standard fonts
+		self.fonts = {
+			"title": wx.Font(16, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD),
+			"label": wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL),
+			"input": wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL)
+		}
+
+		lbl_title = wx.StaticText(self, label="WeeaBlind")
+		lbl_title.SetFont(self.fonts["title"])
+		lbl_title.SetForegroundColour(self.colors["accent"])
+
+		lbl_GPU = wx.StaticText(self, label=f"GPU Detected? {feature_support.gpu_supported}")
+		lbl_GPU.SetFont(self.fonts["label"])
+		lbl_GPU.SetForegroundColour(self.colors["success"] if feature_support.gpu_supported else self.colors["error"])
 
 		btn_choose_file = wx.Button(self, label="Choose File")
+		btn_choose_file.SetFont(self.fonts["input"])
 		btn_choose_file.Bind(wx.EVT_BUTTON, self.open_file)
 
 		lbl_main_file = wx.StaticText(self, label="Choose a video file or link to a YouTube video:")
+		lbl_main_file.SetFont(self.fonts["label"])
+		lbl_main_file.SetForegroundColour(self.colors["text"])
 		self.txt_main_file = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER, value=utils.test_video_name)
+		self.txt_main_file.SetFont(self.fonts["input"])
+		self.txt_main_file.SetBackgroundColour(wx.Colour(255,255,255))
 		self.txt_main_file.Bind(wx.EVT_TEXT_ENTER, lambda event: self.load_video(self.txt_main_file.Value))
+
 		lbl_dl_lang = wx.StaticText(self, label="Download subtitle language:")
+		lbl_dl_lang.SetFont(self.fonts["label"])
+		lbl_dl_lang.SetForegroundColour(self.colors["text"])
 		self.txt_dl_lang = wx.TextCtrl(self, value="en")
+		self.txt_dl_lang.SetFont(self.fonts["input"])
+		self.txt_dl_lang.SetBackgroundColour(wx.Colour(255,255,255))
 
 		lbl_start_time = wx.StaticText(self, label="Start Time:")
+		lbl_start_time.SetFont(self.fonts["label"])
+		lbl_start_time.SetForegroundColour(self.colors["text"])
 		lbl_end_time = wx.StaticText(self, label="End Time:")
+		lbl_end_time.SetFont(self.fonts["label"])
+		lbl_end_time.SetForegroundColour(self.colors["text"])
+
 		self.txt_start = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER, value=utils.seconds_to_timecode(0))
+		self.txt_start.SetFont(self.fonts["input"])
+		self.txt_start.SetBackgroundColour(wx.Colour(255,255,255))
 		self.txt_end = wx.TextCtrl(self, style=wx.TE_PROCESS_ENTER, value=utils.seconds_to_timecode(0))
+		self.txt_end.SetFont(self.fonts["input"])
+		self.txt_end.SetBackgroundColour(wx.Colour(255,255,255))
 		self.txt_start.Bind(wx.EVT_TEXT_ENTER, self.change_crop_time)
 		self.txt_end.Bind(wx.EVT_TEXT_ENTER, self.change_crop_time)
 
 		self.chk_match_rate = wx.CheckBox(self, label="Match Speaker Rate")
+		self.chk_match_rate.SetFont(self.fonts["label"])
+		self.chk_match_rate.SetForegroundColour(self.colors["text"])
 		self.chk_match_rate.SetValue(True)
 
 		self.lb_voices = wx.ListBox(self, choices=[speaker.name for speaker in app_state.speakers])
+		self.lb_voices.SetFont(self.fonts["input"])
+		self.lb_voices.SetBackgroundColour(wx.Colour(255,255,255))
 		self.lb_voices.Bind(wx.EVT_LISTBOX, self.on_voice_change)
 		self.lb_voices.Select(0)
 
 		btn_new_speaker = wx.Button(self, label="New Speaker")
+		btn_new_speaker.SetFont(self.fonts["input"])
 		btn_new_speaker.Bind(wx.EVT_BUTTON, self.add_speaker)
 
 		tab_control = wx.Notebook(self)
-		tab_control.AddPage(GreeterView(tab_control, self), "Welcome!")
-		self.tab_voice_config = ConfigureVoiceTab(tab_control, self)
+		# Pass colors and fonts to tabs
+		greeter_tab = GreeterView(tab_control, self, colors=self.colors, fonts=self.fonts)
+		tab_control.AddPage(greeter_tab, "Welcome!")
+		self.tab_voice_config = ConfigureVoiceTab(tab_control, self, colors=self.colors, fonts=self.fonts)
 		tab_control.AddPage(self.tab_voice_config, "Configure Voices")
-		self.tab_subtitles = SubtitlesTab(tab_control, self)
+		self.tab_subtitles = SubtitlesTab(tab_control, self, colors=self.colors, fonts=self.fonts)
 		tab_control.AddPage(self.tab_subtitles, "Subtitles")
-		self.streams_tab = ListStreamsTab(tab_control, self)
+		self.streams_tab = ListStreamsTab(tab_control, self, colors=self.colors, fonts=self.fonts)
 		tab_control.AddPage(self.streams_tab, "Video Streams")
 		
 		btn_run_dub = wx.Button(self, label="Run Dubbing!")
+		btn_run_dub.SetFont(self.fonts["input"])
+		btn_run_dub.SetBackgroundColour(self.colors["accent"])
+		btn_run_dub.SetForegroundColour(wx.Colour(255,255,255)) # White text
 		btn_run_dub.Bind(wx.EVT_BUTTON, self.run_dub)
-		
-		sizer = wx.GridBagSizer(vgap=5, hgap=5)
-		sizer.Add(lbl_title, pos=(0, 0), span=(1, 2), flag=wx.CENTER | wx.ALL, border=5)
-		sizer.Add(lbl_GPU, pos=(0, 3), span=(1, 1), flag=wx.CENTER | wx.ALL, border=5)
-		sizer.Add(lbl_main_file, pos=(2, 0), span=(1, 2), flag=wx.LEFT | wx.TOP, border=5)
-		sizer.Add(self.txt_main_file, pos=(3, 0), span=(1, 2), flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, border=5)
-		sizer.Add(btn_choose_file, pos=(3, 2), span=(1, 1), flag=wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, border=5)
-		sizer.Add(lbl_dl_lang, pos=(4, 0), span=(1,1), flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, border=5)
-		sizer.Add(self.txt_dl_lang, pos=(4, 1), span=(1,1), flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, border=5)
-		sizer.Add(lbl_start_time, pos=(5, 0), flag=wx.LEFT | wx.TOP, border=3)
-		sizer.Add(self.txt_start, pos=(5, 1), flag= wx.TOP | wx.RIGHT, border=3)
-		sizer.Add(lbl_end_time, pos=(5, 2), flag=wx.LEFT | wx.TOP, border=3)
-		sizer.Add(self.txt_end, pos=(5, 3), flag= wx.TOP | wx.RIGHT, border=3)
-		sizer.Add(self.chk_match_rate, pos=(6, 0), span=(1, 2), flag=wx.LEFT | wx.TOP, border=5)
-		sizer.Add(self.lb_voices, pos=(7, 0), span=(2, 1), flag=wx.EXPAND | wx.LEFT | wx.TOP, border=5)
-		sizer.Add(btn_new_speaker, pos=(9, 0), span=(1, 1), flag=wx.LEFT, border=5)
-		sizer.Add(tab_control, pos=(7, 1), span=(2, 3), flag=wx.SHRINK | wx.ALL, border=5)
-		sizer.Add(btn_run_dub, pos=(10, 2), span=(1, 1), flag=wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, border=5)
-		# sizer.AddGrowableCol(1)
-		# sizer.AddGrowableRow(7)
-		self.tab_voice_config.update_voice_fields(None)
 
-		self.SetSizerAndFit(sizer)
+		# Main vertical sizer
+		main_sizer = wx.BoxSizer(wx.VERTICAL)
+
+		# Title and GPU status
+		title_sizer = wx.BoxSizer(wx.HORIZONTAL)
+		title_sizer.Add(lbl_title, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
+		title_sizer.AddStretchSpacer(1)
+		title_sizer.Add(lbl_GPU, 0, wx.ALL | wx.ALIGN_CENTER_VERTICAL, 10)
+		main_sizer.Add(title_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT, 10)
+
+		main_sizer.AddSpacer(10)
+
+		# File input section
+		main_sizer.Add(lbl_main_file, 0, wx.LEFT | wx.TOP, 10)
+		file_input_sizer = wx.BoxSizer(wx.HORIZONTAL)
+		file_input_sizer.Add(self.txt_main_file, 1, wx.EXPAND | wx.RIGHT, 5)
+		file_input_sizer.Add(btn_choose_file, 0, wx.ALIGN_CENTER_VERTICAL)
+		main_sizer.Add(file_input_sizer, 0, wx.EXPAND | wx.ALL, 10)
+
+		# Download language
+		dl_lang_sizer = wx.BoxSizer(wx.HORIZONTAL)
+		dl_lang_sizer.Add(lbl_dl_lang, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
+		dl_lang_sizer.Add(self.txt_dl_lang, 1, wx.EXPAND)
+		main_sizer.Add(dl_lang_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
+		
+		# Time crop section
+		time_crop_sizer = wx.BoxSizer(wx.HORIZONTAL)
+		time_crop_sizer.Add(lbl_start_time, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
+		time_crop_sizer.Add(self.txt_start, 1, wx.EXPAND | wx.RIGHT, 10)
+		time_crop_sizer.Add(lbl_end_time, 0, wx.ALIGN_CENTER_VERTICAL | wx.RIGHT, 5)
+		time_crop_sizer.Add(self.txt_end, 1, wx.EXPAND)
+		main_sizer.Add(time_crop_sizer, 0, wx.EXPAND | wx.LEFT | wx.RIGHT | wx.BOTTOM, 10)
+
+		main_sizer.Add(self.chk_match_rate, 0, wx.LEFT | wx.BOTTOM, 10)
+
+		# Voices and Tabs section
+		voices_tabs_sizer = wx.BoxSizer(wx.HORIZONTAL)
+
+		voices_sizer = wx.BoxSizer(wx.VERTICAL)
+		voices_sizer.Add(self.lb_voices, 1, wx.EXPAND | wx.RIGHT, 10)
+		voices_sizer.Add(btn_new_speaker, 0, wx.TOP, 5)
+
+		voices_tabs_sizer.Add(voices_sizer, 1, wx.EXPAND | wx.ALL, 10)
+		voices_tabs_sizer.Add(tab_control, 3, wx.EXPAND | wx.ALL, 10) # Tabs take more space
+
+		main_sizer.Add(voices_tabs_sizer, 1, wx.EXPAND)
+
+		# Run dubbing button
+		run_button_sizer = wx.BoxSizer(wx.HORIZONTAL)
+		run_button_sizer.AddStretchSpacer(1)
+		run_button_sizer.Add(btn_run_dub, 0, wx.ALL, 10)
+		main_sizer.Add(run_button_sizer, 0, wx.EXPAND | wx.BOTTOM | wx.RIGHT, 5)
+
+		self.tab_voice_config.update_voice_fields(None)
+		self.SetSizerAndFit(main_sizer)
 		wx.CallAfter(self.check_ffmpeg)
 
 	def check_ffmpeg(self):
