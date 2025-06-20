@@ -11,12 +11,15 @@ if feature_support.espeak_supported:
 if feature_support.coqui_supported:
 	from TTS.api import TTS
 	from TTS.utils import manage
+if feature_support.google_cloud_supported:
+	from google.cloud import texttospeech
 
 class Voice(abc.ABC):
 	class VoiceType(Enum):
 		ESPEAK = ("ESpeak", feature_support.espeak_supported)
 		COQUI = ("Coqui TTS", feature_support.coqui_supported)
 		SYSTEM = ("System Voices", True)
+		GOOGLE_CLOUD = ("Google Cloud TTS", feature_support.google_cloud_supported)
 
 	def __new__(cls, voice_type, init_args=[], name="Unnamed"):
 		if cls is Voice:
@@ -26,6 +29,8 @@ class Voice(abc.ABC):
 				return super().__new__(CoquiVoice)
 			elif voice_type == cls.VoiceType.SYSTEM:
 				return super().__new__(SystemVoice)
+			elif voice_type == cls.VoiceType.GOOGLE_CLOUD:
+				return super().__new__(GoogleCloudVoice)
 		else:
 			return super().__new__(cls)
 
@@ -180,3 +185,68 @@ class SystemVoice(Voice):
 
 	def list_voice_options(self):
 		return [voice.name for voice in self.voice.getProperty('voices')]
+
+class GoogleCloudVoice(Voice):
+	def __init__(self, init_args=[], name="Unnamed"):
+		super().__init__(Voice.VoiceType.GOOGLE_CLOUD, init_args, name)
+		self.client = texttospeech.TextToSpeechClient()
+		self.voice_options_cache = None # Cache for voice list
+		self.selected_language_code = "en-US" # Default
+		self.selected_voice_name = "en-US-Standard-C" # Default female voice
+		self.speaking_rate = 1.0 # Range 0.25 to 4.0
+		self.pitch = 0.0 # Range -20.0 to 20.0
+
+	def speak(self, text, file_name):
+		synthesis_input = texttospeech.SynthesisInput(text=text)
+		voice_params = texttospeech.VoiceSelectionParams(
+			language_code=self.selected_language_code,
+			name=self.selected_voice_name
+		)
+		audio_config = texttospeech.AudioConfig(
+			audio_encoding=texttospeech.AudioEncoding.MP3, # WAV is also an option if MP3 causes issues with pydub
+			speaking_rate=self.speaking_rate,
+			pitch=self.pitch
+		)
+		response = self.client.synthesize_speech(
+			input=synthesis_input,
+			voice=voice_params,
+			audio_config=audio_config
+		)
+		with open(file_name, "wb") as out:
+			out.write(response.audio_content)
+		return file_name
+
+	def set_voice_params(self, voice_name=None, language_code=None, speaking_rate=None, pitch=None):
+		if voice_name:
+			self.selected_voice_name = voice_name
+		if language_code:
+			self.selected_language_code = language_code
+			# If language changes, selected voice might become invalid.
+			# Consider resetting voice_name or finding a default for the new language.
+			# For now, we assume UI will handle valid combinations or user provides correct voice_name.
+		if speaking_rate is not None:
+			# Clamp between 0.25 and 4.0
+			self.speaking_rate = max(0.25, min(speaking_rate, 4.0))
+		if pitch is not None:
+			# Clamp between -20.0 and 20.0
+			self.pitch = max(-20.0, min(pitch, 20.0))
+
+	def list_voice_options(self, language_code=None):
+		"""Lists available voices, optionally filtered by language code."""
+		if not self.voice_options_cache:
+			self.voice_options_cache = self.client.list_voices().voices
+
+		if language_code:
+			return [voice for voice in self.voice_options_cache if language_code in voice.language_codes]
+		return self.voice_options_cache
+
+	def list_languages(self):
+		"""Returns a list of unique language codes from available voices."""
+		if not self.voice_options_cache:
+			self.voice_options_cache = self.client.list_voices().voices
+
+		languages = set()
+		for voice in self.voice_options_cache:
+			for lang_code in voice.language_codes:
+				languages.add(lang_code)
+		return sorted(list(languages))

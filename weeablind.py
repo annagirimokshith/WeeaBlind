@@ -245,9 +245,23 @@ class GUI(wx.Panel):
 
 	def add_speaker(self, event):
 		num_voice = self.lb_voices.GetCount()
-		app_state.speakers.append(Voice(Voice.VoiceType.SYSTEM, name=f"Voice {num_voice}"))
+		new_speaker_name = f"Voice {num_voice}"
+
+		# Determine default voice type based on availability
+		default_new_voice_type = Voice.VoiceType.SYSTEM # Fallback
+		if feature_support.google_cloud_supported:
+			default_new_voice_type = Voice.VoiceType.GOOGLE_CLOUD
+		elif feature_support.coqui_supported:
+			default_new_voice_type = Voice.VoiceType.COQUI
+
+		app_state.speakers.append(Voice(default_new_voice_type, name=new_speaker_name))
 		self.update_voices_list()
 		self.lb_voices.Select(num_voice)
+		# Update the sample speaker to the newly added one and refresh config tab
+		app_state.current_speaker = app_state.speakers[num_voice]
+		app_state.sample_speaker = app_state.current_speaker
+		self.tab_voice_config.update_voice_fields(None)
+
 
 	def run_dub(self, event):
 		progress_dialog = wx.ProgressDialog(

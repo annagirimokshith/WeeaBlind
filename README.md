@@ -50,6 +50,15 @@ https://visualstudio.microsoft.com/visual-cpp-build-tools/
 
 Coqui TTS and Pyannote diarization will also both perform better if you have CUDA set up on your system to use your GPU. This should work out of the box on Linux but getting it set up on Windows takes some doing. This [blog post](https://saturncloud.io/blog/how-to-run-mozilla-ttscoqui-tts-training-with-cuda-on-a-windows-system/) should walk you through the process. If you can't get it working, don't fret, you can still use them on your CPU.
 
+**For Google Cloud Text-to-Speech:**
+You will need to have a Google Cloud Platform account and a project with the Text-to-Speech API enabled.
+1.  Create a service account with the "Cloud Text-to-Speech API User" role (or similar permissions).
+2.  Download the JSON key file for this service account.
+3.  Set the environment variable `GOOGLE_APPLICATION_CREDENTIALS` to the absolute path of this JSON key file. For example:
+    *   Linux/macOS: `export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/keyfile.json"` (add this to your `.bashrc` or `.zshrc`)
+    *   Windows (PowerShell): `$env:GOOGLE_APPLICATION_CREDENTIALS="C:\path\to\your\keyfile.json"` (set it in System Environment Variables for persistence)
+    The application will automatically detect and use these credentials if the `google-cloud-tts` library is installed.
+
 The latest version of Python works on Linux, but Spleeter only works on 3.10 and Pyannote can be finicky with that too. 3.10 seems to work the best on on Windows. You can get it from the Microsoft Store.
 
 ### Setup from Source
@@ -90,7 +99,14 @@ Once a video is loaded, you can preview the subtitles that will be dubbed. If th
 You can specify a start and end time if you only need to dub a section of the video, for example to skip the opening theme and credits of a show. Use timecode syntax like 2:17 and press enter. 
 
 ### Configuring Voices
-By default, a "Sample" voice should be initialized. You can play around with different configurations and test the voice before dubbing with the "Sample Voice" button in the "Configure Voices" tab. When you have parameters you're happy with, clicking "Update Voices" will re-asign it to that slot. If you choose the SYSTEM tts engine, the program will use Windows' SAPI5 Narrorator or Linux espeak voices by default. This is extremely fast but sounds very robotic. Selecting Coqui gives you a TON of options to play around with, but you will be prompted to download often very heavy TTS models. VCTK/VITS is my favorite model to dub with as it's very quick, even on CPU, and there are hundreds of speakers to choose from. It is loaded by default. If you have ran diarization, you can select different voices from the listbox and change their properties as well.
+By default, a "Sample" voice should be initialized. You can play around with different configurations and test the voice before dubbing with the "Sample Voice" button in the "Configure Voices" tab. When you have parameters you're happy with, clicking "Update Voices" will re-asign it to that slot.
+The available TTS engines are:
+-   **System Voices:** Uses your operating system's built-in voices (SAPI5 on Windows, espeak on Linux by default). Fast but often robotic.
+-   **ESpeak:** A compact, open-source speech synthesizer.
+-   **Coqui TTS:** Offers a wide range of high-quality, downloadable AI models. Some models are multi-speaker or support voice cloning with a sample WAV file.
+-   **Google Cloud TTS:** (If enabled via `GOOGLE_APPLICATION_CREDENTIALS`) Provides access to Google's extensive library of premium voices. Allows configuration of language, specific voice name, speaking rate, and pitch.
+
+If you have run diarization, you can select different voices from the listbox and change their properties as well.
 
 ### Language Filtering
 In the subtitles tab, you filter the subtitles to exclude lines spoken in your selected language so only the foreign language gets dubbed. This is useful for multi-lingual videos, but not videos all in one language.

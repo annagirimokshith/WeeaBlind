@@ -14,6 +14,7 @@ yt-dlp # <-- Downloading YT vids
 espeakng
 spleeter # <-- Vocal / Background isolation
 coqui-tts # <-- Coqui TTS engine
+google-cloud-tts # <-- Google Cloud TTS engine
 pyannote.audio
 # git+https://github.com/speechbrain/speechbrain.git # speechbrain # <-- Audio Language Identification
 git+https://github.com/casics/nostril.git # <--- GOBBLEDYGOOK OBLITERATOR

@@ -41,6 +41,11 @@ gpu_supported = False
 if torch_supported:
 	from torch.cuda import is_available
 	gpu_supported = is_available()
+
+google_cloud_supported = is_module_available("google.cloud.texttospeech") and \
+													 os.environ.get("GOOGLE_APPLICATION_CREDENTIALS") is not None
+if not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
+	print("GOOGLE_APPLICATION_CREDENTIALS environment variable not set. Google Cloud TTS will be unavailable.")
 # TESTING
 # language_detection_supported = coqui_supported = False
 
