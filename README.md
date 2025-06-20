@@ -84,10 +84,14 @@ Installing the dependencies can take a hot minute and uses a lot of space (~8 GB
 If you don't need certain features for instance, language filtering, you can omit speechbrain from the readme. 
 
 once this is completed, you can run the program with
-
 ```
 python weeablind.py
 ```
+Alternatively, after setting up the virtual environment, you can use the provided launch scripts:
+-   Windows: Double-click `run_weeablind.bat`
+-   Linux: Open a terminal in the project directory and run `./run_weeablind.sh` (you might need to make it executable first with `chmod +x run_weeablind.sh`)
+
+These scripts will attempt to activate the `venv` virtual environment and then start the application.
 
 ## Usage
 Start by either selecting a video from your computer or pasting a link to a YT video and pressing enter. It should download the video and lot the subs and audio.
